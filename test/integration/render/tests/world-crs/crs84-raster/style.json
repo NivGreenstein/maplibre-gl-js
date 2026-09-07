@@ -1,0 +1,35 @@
+{
+  "version": 8,
+  "metadata": {
+    "test": {
+      "width": 512,
+      "height": 256,
+      "worldCRS": "WorldCRS84Quad",
+      "allowed": 0.0005
+    }
+  },
+  "center": [0, 0],
+  "zoom": 0,
+  "sources": {
+    "hemispheres": {
+      "type": "raster",
+      "tiles": ["local://tiles/{z}-{x}-{y}.crs84.png"],
+      "tileSize": 256,
+      "minzoom": 0,
+      "maxzoom": 0
+    }
+  },
+  "layers": [
+    {
+      "id": "background",
+      "type": "background",
+      "paint": {"background-color": "white"}
+    },
+    {
+      "id": "hemispheres",
+      "type": "raster",
+      "source": "hemispheres",
+      "paint": {"raster-fade-duration": 0, "raster-resampling": "nearest"}
+    }
+  ]
+}

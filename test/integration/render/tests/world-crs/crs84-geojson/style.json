@@ -1,0 +1,60 @@
+{
+  "version": 8,
+  "metadata": {
+    "test": {
+      "width": 512,
+      "height": 256,
+      "worldCRS": "WorldCRS84Quad",
+      "allowed": 0.0005
+    }
+  },
+  "center": [0, 0],
+  "zoom": 0,
+  "sources": {
+    "bands": {
+      "type": "geojson",
+      "data": {
+        "type": "FeatureCollection",
+        "features": [
+          {
+            "type": "Feature",
+            "properties": {"band": "lat"},
+            "geometry": {
+              "type": "Polygon",
+              "coordinates": [[[-170, 40], [170, 40], [170, 50], [-170, 50], [-170, 40]]]
+            }
+          },
+          {
+            "type": "Feature",
+            "properties": {"band": "lng"},
+            "geometry": {
+              "type": "Polygon",
+              "coordinates": [[[-20, -85], [20, -85], [20, 85], [-20, 85], [-20, -85]]]
+            }
+          }
+        ]
+      }
+    }
+  },
+  "layers": [
+    {
+      "id": "background",
+      "type": "background",
+      "paint": {"background-color": "white"}
+    },
+    {
+      "id": "lat-band",
+      "type": "fill",
+      "source": "bands",
+      "filter": ["==", ["get", "band"], "lat"],
+      "paint": {"fill-color": "#ff0000", "fill-antialias": false}
+    },
+    {
+      "id": "lng-band",
+      "type": "fill",
+      "source": "bands",
+      "filter": ["==", ["get", "band"], "lng"],
+      "paint": {"fill-color": "#0000ff", "fill-antialias": false}
+    }
+  ]
+}

@@ -11,7 +11,7 @@ import type {Page, Browser, WebWorker} from 'puppeteer';
 import {ensureError} from '../../../src/util/util.ts';
 import {localizeURLs} from '../lib/localize-urls.ts';
 import {launchPuppeteer, startCoverage, stopCoverageAndReport} from '../lib/puppeteer_config.ts';
-import type {MapLibreMap, CanvasSource, PointLike, StyleSpecification, MapEventType} from '../../../dist/maplibre-gl';
+import type {MapLibreMap, CanvasSource, PointLike, StyleSpecification, MapEventType, WorldCRSName} from '../../../dist/maplibre-gl';
 import type * as MapLibreGL from '../../../dist/maplibre-gl';
 import {afterAll, afterEach, beforeAll, beforeEach, describe, expect, test, vi, type TestContext} from 'vitest';
 
@@ -75,6 +75,11 @@ type TestData = {
     error?: Error;
     maxPitch: number;
     maxZoom: number;
+    /**
+     * The world CRS / tile matrix set to render in. Defaults to `'WebMercatorQuad'`, which is
+     * what the reference images were rendered with, rather than the library's own default.
+     */
+    worldCRS?: WorldCRSName;
     continuesRepaint: boolean;
     // Crop PNG results if they're too large
     reportWidth: number;
@@ -663,6 +668,11 @@ async function getImageFromStyle(styleForTest: StyleWithTestData, page: Page): P
             const fakeCanvas = await createFakeCanvas(document, options.addFakeCanvas.id, options.addFakeCanvas.image);
             document.body.appendChild(fakeCanvas);
         }
+
+        // The reference images are Web Mercator, so the render suite runs on that CRS even
+        // though this fork ships WorldCRS84Quad as the default. See
+        // `test/unit/lib/world_crs_default.ts` for the same reasoning on the unit suite.
+        maplibregl.setWorldCRS(options.worldCRS ?? 'WebMercatorQuad');
 
         if (maplibregl.getRTLTextPluginStatus() === 'unavailable') {
             await maplibregl.setRTLTextPlugin(

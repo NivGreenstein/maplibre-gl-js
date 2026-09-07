@@ -19,6 +19,9 @@
 import * as maplibregl from '../../../../dist/maplibre-gl-dev.mjs';
 
 maplibregl.setWorkerUrl('../../../../dist/maplibre-gl-worker-dev.mjs');
+// The browser tests assert Web Mercator screen positions, so they run on that CRS rather
+// than the library's WorldCRS84Quad default. See `test/unit/lib/world_crs_default.ts`.
+maplibregl.setWorldCRS('WebMercatorQuad');
 window.maplibregl = maplibregl;
 
 // `map` is read from `window` by the browser test; module scope doesn't expose it.

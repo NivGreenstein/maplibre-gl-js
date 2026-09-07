@@ -14,6 +14,20 @@
 
 It originated as an open-source fork of [mapbox-gl-js](https://github.com/mapbox/mapbox-gl-js), before their switch to a non-OSS license in December 2020. The library's initial versions (1.x) were intended to be a drop-in replacement for the Mapbox’s OSS version (1.x) with additional functionality, but have evolved a lot since then.
 
+## This fork: EPSG:4326 by default
+
+This fork replaces the hardcoded Web Mercator world with a pluggable one and defaults it to
+the OGC `WorldCRS84Quad` tile matrix set, so raster and vector tiles are requested and drawn
+natively in EPSG:4326 - no reprojection to mercator anywhere. Upstream's behaviour is one
+call away:
+
+```js
+maplibregl.setWorldCRS('WebMercatorQuad');
+```
+
+See [developer-guides/world-crs.md](developer-guides/world-crs.md) for how the tile matrix
+levels line up, what changes for sources and URL templates, and what is not supported.
+
 ## Getting Started
 
 Include the CSS file in the `<head>` of your HTML file.

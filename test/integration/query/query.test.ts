@@ -56,6 +56,11 @@ async function performQueryOnFixture(fixture)  {
     document.getElementById('map').style.width = `${options.width}px`;
     document.getElementById('map').style.height = `${options.height}px`;
 
+    // The query fixtures address Web Mercator tiles and screen positions, so they run on
+    // that CRS rather than the library's WorldCRS84Quad default. See
+    // `test/unit/lib/world_crs_default.ts` for the same reasoning on the unit suite.
+    maplibregl.setWorldCRS('WebMercatorQuad');
+
     const map =  new maplibregl.Map({
         container: 'map',
         style,
