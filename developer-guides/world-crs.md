@@ -10,6 +10,34 @@ set - the familiar `{z}/{x}/{y}` of OpenStreetMap and friends.
 are requested and drawn natively in [EPSG:4326](https://epsg.io/4326) with no reprojection to
 mercator anywhere in the pipeline.
 
+## What it looks like
+
+The same page, the same code, with only `setWorldCRS()` differing. In both shots the
+graticule and the orange tile borders are drawn *by the tile server* from each tile's
+geographic bounds, while the coastline is drawn by MapLibre; that they line up is an
+independent check that the tiling and the projection agree. The panel lists the tile URLs
+that were actually requested.
+
+`WorldCRS84Quad` - plate carree, a 2:1 world that reaches the poles, and two tiles at tile
+matrix level 0:
+
+![The world in WorldCRS84Quad](assets/world-crs_worldcrs84quad.png)
+
+`WebMercatorQuad` - the same code after `setWorldCRS('WebMercatorQuad')`, with Greenland the
+size of Africa and four tiles at level 1:
+
+![The world in WebMercatorQuad](assets/world-crs_webmercatorquad.png)
+
+The top edge of a `WorldCRS84Quad` map is 90 degrees north, and no tiles are requested past
+row 0 - the case Web Mercator cannot represent at all:
+
+![The Arctic in WorldCRS84Quad](assets/world-crs_arctic.png)
+
+Zoomed in to tile matrix level 5, where the alignment between the server's graticule and
+MapLibre's coastline is easiest to read:
+
+![Italy at CRS84 level 5](assets/world-crs_level5.png)
+
 ## Choosing a CRS
 
 ```ts
