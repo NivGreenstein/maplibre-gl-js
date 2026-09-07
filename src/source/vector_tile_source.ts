@@ -2,6 +2,7 @@ import {ErrorEvent, Evented} from '../util/evented.ts';
 import {MapSourceDataEvent, type SourceEventType} from '../ui/events.ts';
 
 import {ensureError, extend, pick} from '../util/util.ts';
+import {zoomFromTileMatrixLevel} from '../geo/world_crs.ts';
 import {loadTileJson} from './load_tilejson.ts';
 import {TileBounds} from '../tile/tile_bounds.ts';
 import {ResourceType} from '../util/request_manager.ts';
@@ -92,8 +93,9 @@ export class VectorTileSource extends Evented<SourceEventType> implements Source
         this.dispatcher = dispatcher;
 
         this.type = 'vector';
-        this.minzoom = 0;
-        this.maxzoom = 22;
+        // Defaults are tile matrix levels 0..22 of the active world CRS, expressed as internal tile zooms.
+        this.minzoom = zoomFromTileMatrixLevel(0);
+        this.maxzoom = zoomFromTileMatrixLevel(22);
         this.scheme = 'xyz';
         this.tileSize = 512;
         this.reparseOverscaled = true;

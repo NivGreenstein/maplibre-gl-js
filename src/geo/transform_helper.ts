@@ -1,10 +1,11 @@
 import {LngLat, type LngLatLike} from './lng_lat.ts';
 import {LngLatBounds} from './lng_lat_bounds.ts';
 import Point from '@mapbox/point-geometry';
-import {wrap, clamp, degreesToRadians, radiansToDegrees, zoomScale, MAX_VALID_LATITUDE, scaleZoom} from '../util/util.ts';
+import {wrap, clamp, degreesToRadians, radiansToDegrees, zoomScale, scaleZoom} from '../util/util.ts';
 import {mat4, mat2} from 'gl-matrix';
 import {EdgeInsets} from './edge_insets.ts';
 import {altitudeFromMercatorZ, MercatorCoordinate, mercatorZfromAltitude} from './mercator_coordinate.ts';
+import {getWorldCRS} from './world_crs.ts';
 import {cameraMercatorCoordinate, cameraDirectionFromPitchBearing} from './projection/mercator_utils.ts';
 import {EXTENT} from '../data/extent.ts';
 
@@ -509,7 +510,8 @@ export class TransformHelper implements ITransformGetters {
             this.constrainInternal();
         } else {
             this._lngRange = null;
-            this._latRange = [-MAX_VALID_LATITUDE, MAX_VALID_LATITUDE];
+            const maxLatitude = getWorldCRS().maxLatitude;
+            this._latRange = [-maxLatitude, maxLatitude];
         }
     }
 

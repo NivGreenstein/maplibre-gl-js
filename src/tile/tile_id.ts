@@ -1,8 +1,9 @@
 import {EXTENT} from '../data/extent.ts';
 import Point from '@mapbox/point-geometry';
-import {MercatorCoordinate} from '../geo/mercator_coordinate.ts';
+import {latFromMercatorY, lngFromMercatorX, MercatorCoordinate} from '../geo/mercator_coordinate.ts';
+import {getWorldCRS, MAX_MERCATOR_LATITUDE, tileMatrixLevelFromZoom, tileRowsAtZoom, WebMercatorQuad} from '../geo/world_crs.ts';
 import {register} from '../util/web_worker_transfer.ts';
-import {type Mat4f32, MAX_TILE_ZOOM, MIN_TILE_ZOOM} from '../util/util.ts';
+import {clamp, degreesToRadians, type Mat4f32, MAX_TILE_ZOOM, MIN_TILE_ZOOM} from '../util/util.ts';
 import {type ICanonicalTileID, type IMercatorCoordinate} from '@maplibre/maplibre-gl-style-spec';
 import {isInBoundsForTileZoomXY} from '../util/world_bounds.ts';
 
@@ -18,7 +19,7 @@ export class CanonicalTileID implements ICanonicalTileID {
     constructor(z: number, x: number, y: number) {
 
         if (!isInBoundsForTileZoomXY(z, x, y)) {
-            throw new Error(`x=${x}, y=${y}, z=${z} outside of bounds. 0<=x<${Math.pow(2, z)}, 0<=y<${Math.pow(2, z)} ${MIN_TILE_ZOOM}<=z<=${MAX_TILE_ZOOM} `);
+            throw new Error(`x=${x}, y=${y}, z=${z} outside of bounds. 0<=x<${Math.pow(2, z)}, 0<=y<${tileRowsAtZoom(z)} ${MIN_TILE_ZOOM}<=z<=${MAX_TILE_ZOOM} `);
         }
 
         this.z = z;
@@ -33,19 +34,25 @@ export class CanonicalTileID implements ICanonicalTileID {
 
     /**
      * given a list of urls, choose a url template and return a tile URL
+     *
+     * `{z}` is the tile matrix level of the active world CRS, which is not necessarily this
+     * tile's internal zoom: under `WorldCRS84Quad` internal zoom `z` addresses tile matrix
+     * level `z - 1`, the level whose `2^z` columns span the same 360°.
      */
     url(urls: string[], pixelRatio: number, scheme?: string | null): string {
-        const bbox = getTileBBox(this.x, this.y, this.z);
+        const level = tileMatrixLevelFromZoom(this.z);
         const quadkey = getQuadkey(this.z, this.x, this.y);
+        const bounds = tileWorldBounds(this.x, this.y, this.z);
 
         return urls[(this.x + this.y) % urls.length]
             .replace(/{prefix}/g, (this.x % 16).toString(16) + (this.y % 16).toString(16))
-            .replace(/{z}/g, String(this.z))
+            .replace(/{z}/g, String(level))
             .replace(/{x}/g, String(this.x))
-            .replace(/{y}/g, String(scheme === 'tms' ? (Math.pow(2, this.z) - this.y - 1) : this.y))
+            .replace(/{y}/g, String(scheme === 'tms' ? (tileRowsAtZoom(this.z) - this.y - 1) : this.y))
             .replace(/{ratio}/g, pixelRatio > 1 ? '@2x' : '')
             .replace(/{quadkey}/g, quadkey)
-            .replace(/{bbox-epsg-3857}/g, bbox);
+            .replace(/{bbox-epsg-3857}/g, getTileBBox3857(bounds))
+            .replace(/{bbox-epsg-4326}/g, getTileBBox4326(bounds));
     }
 
     isChildOf(parent: ICanonicalTileID): boolean {
@@ -254,7 +261,7 @@ export class OverscaledTileID {
         const dim = 1 << z;
         const newCanonicalY = this.canonical.y + tileOffsetY;
 
-        if (newCanonicalY < 0 || newCanonicalY >= dim) return null;
+        if (newCanonicalY < 0 || newCanonicalY >= tileRowsAtZoom(z)) return null;
 
         let newCanonicalX = this.canonical.x + tileOffsetX;
         let newWrap = this.wrap;
@@ -285,29 +292,63 @@ export function calculateTileKey(wrap: number, overscaledZ: number, z: number, x
 const EPSG3857_RADIUS = 6378137;
 const EPSG3857_HALF_CIRCUMFERENCE = Math.PI * EPSG3857_RADIUS;
 
+/** A tile's extent in world coordinates of the active CRS: `[0, 1]` across, `y` growing southwards. */
+type TileWorldBounds = {west: number; south: number; east: number; north: number};
+
+/**
+ * The extent of a tile in world coordinates of the active CRS.
+ */
+function tileWorldBounds(x: number, y: number, z: number): TileWorldBounds {
+    const scale = Math.pow(2, z);
+    return {
+        west: x / scale,
+        south: (y + 1) / scale,
+        east: (x + 1) / scale,
+        north: y / scale
+    };
+}
+
+/**
+ * Builds the `{bbox-epsg-4326}` token used in WMS tile URLs: the tile's bounding box in
+ * EPSG:4326 degrees as a `minLng,minLat,maxLng,maxLat` string, i.e. in longitude/latitude
+ * (CRS:84) axis order, to match `{bbox-epsg-3857}`.
+ */
+function getTileBBox4326(bounds: TileWorldBounds): string {
+    return `${lngFromMercatorX(bounds.west)},${latFromMercatorY(bounds.south)},${lngFromMercatorX(bounds.east)},${latFromMercatorY(bounds.north)}`;
+}
+
 /**
  * Builds the `{bbox-epsg-3857}` token used in WMS tile URLs: the tile's bounding
  * box in EPSG:3857 meters as a `minX,minY,maxX,maxY` string.
  *
- * Inlined from the archived \@mapbox/whoots-js (ISC, Copyright (c) 2017 Mapbox).
+ * Under `WebMercatorQuad` the tile grid is EPSG:3857's own, so the conversion is the exact
+ * linear one inlined from the archived \@mapbox/whoots-js (ISC, Copyright (c) 2017 Mapbox).
+ * Under any other CRS the tile's latitudes are projected into mercator, clamped to the
+ * mercator limit since a `WorldCRS84Quad` tile can reach the poles.
  */
-function getTileBBox(x: number, y: number, z: number): string {
-    // for Google/OSM tile scheme we need to alter the y
-    y = Math.pow(2, z) - y - 1;
-
-    const min = getEpsg3857Coords(x * 256, y * 256, z);
-    const max = getEpsg3857Coords((x + 1) * 256, (y + 1) * 256, z);
-
-    return `${min[0]},${min[1]},${max[0]},${max[1]}`;
+function getTileBBox3857(bounds: TileWorldBounds): string {
+    return [
+        epsg3857X(bounds.west),
+        epsg3857Y(bounds.south),
+        epsg3857X(bounds.east),
+        epsg3857Y(bounds.north)
+    ].join(',');
 }
 
-/** Projects tile pixel coordinates to EPSG:3857 meters. */
-function getEpsg3857Coords(x: number, y: number, z: number): [number, number] {
-    const resolution = (2 * EPSG3857_HALF_CIRCUMFERENCE / 256) / Math.pow(2, z);
-    const mercX = x * resolution - EPSG3857_HALF_CIRCUMFERENCE;
-    const mercY = y * resolution - EPSG3857_HALF_CIRCUMFERENCE;
+/** Projects a world X coordinate of the active CRS to EPSG:3857 meters. */
+function epsg3857X(worldX: number): number {
+    return EPSG3857_RADIUS * degreesToRadians(lngFromMercatorX(worldX));
+}
 
-    return [mercX, mercY];
+/** Projects a world Y coordinate of the active CRS to EPSG:3857 meters. */
+function epsg3857Y(worldY: number): number {
+    if (getWorldCRS() === WebMercatorQuad) {
+        // The world grid already is EPSG:3857's, so stay linear rather than round-tripping
+        // through a latitude, which would cost several digits of precision.
+        return EPSG3857_HALF_CIRCUMFERENCE * (1 - 2 * worldY);
+    }
+    const lat = clamp(latFromMercatorY(worldY), -MAX_MERCATOR_LATITUDE, MAX_MERCATOR_LATITUDE);
+    return EPSG3857_RADIUS * Math.log(Math.tan(Math.PI / 4 + degreesToRadians(lat) / 2));
 }
 
 function getQuadkey(z:number, x:number, y:number): string {

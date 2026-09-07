@@ -3,6 +3,7 @@ import {RequestPerformance} from '../util/request_performance.ts';
 import {fromVectorTileJs, GeoJSONWrapper} from '@maplibre/vt-pbf';
 import {EXTENT} from '../data/extent.ts';
 import {GeoJSONVT, type GeoJSONVTOptions} from '@maplibre/geojson-vt';
+import {unwarpFeaturesFromWorldCRS, warpGeoJSONDiffToWorldCRS, warpGeoJSONToWorldCRS} from './geojson_lat_warp.ts';
 import {createExpression, type FilterSpecification} from '@maplibre/maplibre-gl-style-spec';
 import {isAbortError} from '../util/abort_error.ts';
 import {WorkerTile} from './worker_tile.ts';
@@ -255,7 +256,7 @@ export class GeoJSONWorkerSource implements WorkerSource {
 
         if (params.dataDiff) {
             this._geoJSONIndex ??= this._createGeoJSONIndex({type: 'FeatureCollection', features: []}, params);
-            this._geoJSONIndex.updateData(params.dataDiff, this._getFilterPredicate(params.filter, params.source));
+            this._geoJSONIndex.updateData(warpGeoJSONDiffToWorldCRS(params.dataDiff), this._getFilterPredicate(params.filter, params.source));
             return;
         }
 
@@ -303,7 +304,7 @@ export class GeoJSONWorkerSource implements WorkerSource {
     }
 
     getClusterChildren(params: ClusterIDAndSource): GeoJSON.Feature[] {
-        return this._geoJSONIndex.getClusterChildren(params.clusterId);
+        return unwarpFeaturesFromWorldCRS(this._geoJSONIndex.getClusterChildren(params.clusterId));
     }
 
     getClusterLeaves(params: {
@@ -311,7 +312,7 @@ export class GeoJSONWorkerSource implements WorkerSource {
         limit: number;
         offset: number;
     }): GeoJSON.Feature[] {
-        return this._geoJSONIndex.getClusterLeaves(params.clusterId, params.limit, params.offset);
+        return unwarpFeaturesFromWorldCRS(this._geoJSONIndex.getClusterLeaves(params.clusterId, params.limit, params.offset));
     }
 }
 
@@ -321,7 +322,7 @@ export function createGeoJSONIndex(data: GeoJSON.GeoJSON, params: LoadGeoJSONPar
         clusterOptions: getSuperclusterOptions(params),
     });
 
-    return new GeoJSONVT(data, options);
+    return new GeoJSONVT(warpGeoJSONToWorldCRS(data), options);
 }
 
 function getSuperclusterOptions({geojsonVtOptions, clusterProperties, source}: LoadGeoJSONParameters) {

@@ -11,7 +11,8 @@ const config: ViteUserConfig = defineConfig({
         },
         setupFiles: [
             'vitest-webgl-canvas-mock',
-            './test/unit/lib/web_worker_mock.ts'
+            './test/unit/lib/web_worker_mock.ts',
+            './test/unit/lib/world_crs_default.ts'
         ],
         include: [
             'src/**/*.test.{ts,js}'

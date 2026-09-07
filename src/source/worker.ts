@@ -7,6 +7,7 @@ import {GeoJSONWorkerSource, type LoadGeoJSONParameters} from './geojson_worker_
 import {isWorker} from '../util/util.ts';
 import {addProtocol, removeProtocol} from './protocol_crud.ts';
 import {makeRequest} from '../util/ajax.ts';
+import {setWorldCRS, type WorldCRSName} from '../geo/world_crs.ts';
 
 import {type PluginState} from './rtl_text_plugin_status.ts';
 import type {
@@ -196,6 +197,10 @@ export default class Worker {
 
         this.actor.registerMessageHandler(MessageType.setReferrer, async (_mapId: string, params: string) => {
             this.referrer = params;
+        });
+
+        this.actor.registerMessageHandler(MessageType.setWorldCRS, async (_mapId: string, params: WorldCRSName) => {
+            setWorldCRS(params);
         });
 
         this.actor.registerMessageHandler(MessageType.syncRTLPluginState, (mapId: string, params: PluginState) => {

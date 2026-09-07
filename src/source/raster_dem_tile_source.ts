@@ -1,6 +1,7 @@
 import {ImageRequest} from '../util/image_request.ts';
 import {ResourceType} from '../util/request_manager.ts';
 import {extend, isImageBitmap, readImageUsingVideoFrame} from '../util/util.ts';
+import {tileRowsAtZoom, zoomFromTileMatrixLevel} from '../geo/world_crs.ts';
 import {type Evented} from '../util/evented.ts';
 import {browser} from '../util/browser.ts';
 import {offscreenCanvasSupported} from '../util/offscreen_canvas_supported.ts';
@@ -44,7 +45,7 @@ export class RasterDEMTileSource extends RasterTileSource implements Source {
     constructor(id: string, options: RasterDEMSourceSpecification, dispatcher: Dispatcher, eventedParent: Evented) {
         super(id, options, dispatcher, eventedParent);
         this.type = 'raster-dem';
-        this.maxzoom = 22;
+        this.maxzoom = zoomFromTileMatrixLevel(22);
         this._options = extend({type: 'raster-dem'}, options);
         this.encoding = options.encoding || 'mapbox';
         this.redFactor = options.redFactor;
@@ -130,6 +131,7 @@ export class RasterDEMTileSource extends RasterTileSource implements Source {
     _getNeighboringTiles(tileID: OverscaledTileID): Record<string, {backfilled: boolean}> {
         const canonical = tileID.canonical;
         const dim = Math.pow(2, canonical.z);
+        const rows = tileRowsAtZoom(canonical.z);
 
         const px = (canonical.x - 1 + dim) % dim;
         const pxw = canonical.x === 0 ? tileID.wrap - 1 : tileID.wrap;
@@ -148,7 +150,7 @@ export class RasterDEMTileSource extends RasterTileSource implements Source {
             neighboringTiles[new OverscaledTileID(tileID.overscaledZ, nxw, canonical.z, nx, canonical.y - 1).key] = {backfilled: false};
         }
         // Add lower neighboringTiles
-        if (canonical.y + 1 < dim) {
+        if (canonical.y + 1 < rows) {
             neighboringTiles[new OverscaledTileID(tileID.overscaledZ, pxw, canonical.z, px, canonical.y + 1).key] = {backfilled: false};
             neighboringTiles[new OverscaledTileID(tileID.overscaledZ, tileID.wrap, canonical.z, canonical.x, canonical.y + 1).key] = {backfilled: false};
             neighboringTiles[new OverscaledTileID(tileID.overscaledZ, nxw, canonical.z, nx, canonical.y + 1).key] = {backfilled: false};

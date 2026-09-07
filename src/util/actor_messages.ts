@@ -8,6 +8,7 @@ import type {LayerSpecification} from '@maplibre/maplibre-gl-style-spec';
 import type {OverscaledTileID} from '../tile/tile_id.ts';
 import type {GetResourceResponse, RequestParameters} from './ajax.ts';
 import type {DashEntry} from '../render/line_atlas.ts';
+import type {WorldCRSName} from '../geo/world_crs.ts';
 
 /**
  * The parameters needed in order to get information about the cluster
@@ -114,6 +115,7 @@ export const enum MessageType {
     updateLayers = 'UL',
     syncRTLPluginState = 'SRPS',
     setReferrer = 'SR',
+    setWorldCRS = 'SWC',
     removeSource = 'RS',
     removeMap = 'RM',
     importScript = 'IS',
@@ -143,6 +145,7 @@ export type RequestResponseMessageMap = {
     [MessageType.updateLayers]: [UpdateLayersParameters, void];
     [MessageType.syncRTLPluginState]: [PluginState, PluginState];
     [MessageType.setReferrer]: [string, void];
+    [MessageType.setWorldCRS]: [WorldCRSName, void];
     [MessageType.removeSource]: [RemoveSourceParams, void];
     [MessageType.removeMap]: [undefined, void];
     [MessageType.importScript]: [string, void];

@@ -1,4 +1,5 @@
 import {warnOnce} from '../../util/util.ts';
+import {getWorldCRS, WebMercatorQuad} from '../world_crs.ts';
 import {MercatorProjection} from './mercator_projection.ts';
 import {MercatorTransform} from './mercator_transform.ts';
 import {MercatorCameraHelper} from './mercator_camera_helper.ts';
@@ -14,6 +15,17 @@ import type {Projection} from './projection.ts';
 import type {ITransform, TransformConstrainFunction} from '../transform_interface.ts';
 import type {ICameraHelper} from './camera_helper.ts';
 
+/**
+ * The globe and vertical-perspective projections wrap a square mercator tile pyramid around
+ * a sphere - their subdivision, pole geometry and tile culling all assume `WebMercatorQuad`.
+ */
+function warnIfProjectionNeedsMercator(name: string): void {
+    const crs = getWorldCRS();
+    if (crs !== WebMercatorQuad) {
+        warnOnce(`The '${name}' projection is only supported with the 'WebMercatorQuad' world CRS, but '${crs.name}' is active. Tiles will be placed incorrectly; call setWorldCRS('WebMercatorQuad') to use it.`);
+    }
+}
+
 export function createProjectionFromName(name: ProjectionSpecification['type'], transformConstrain: TransformConstrainFunction | undefined, globalState: Record<string, any>): {
     projection: Projection;
     transform: ITransform;
@@ -21,6 +33,7 @@ export function createProjectionFromName(name: ProjectionSpecification['type'], 
 } {
     const transformOptions = {constrainOverride: transformConstrain};
     if (Array.isArray(name)) {
+        warnIfProjectionNeedsMercator(name.join(' '));
         const globeProjection = new GlobeProjection({type: name}, globalState);
         return {
             projection: globeProjection,
@@ -39,6 +52,7 @@ export function createProjectionFromName(name: ProjectionSpecification['type'], 
         }
         case 'globe':
         {
+            warnIfProjectionNeedsMercator('globe');
             const globeProjection = new GlobeProjection({type: [
                 'interpolate',
                 ['linear'],
@@ -56,6 +70,7 @@ export function createProjectionFromName(name: ProjectionSpecification['type'], 
         }
         case 'vertical-perspective':
         {
+            warnIfProjectionNeedsMercator('vertical-perspective');
             return {
                 projection: new VerticalPerspectiveProjection(),
                 transform: new VerticalPerspectiveTransform(transformOptions),

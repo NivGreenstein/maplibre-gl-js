@@ -4,6 +4,7 @@ import {Frustum} from '../../util/primitives/frustum.ts';
 import {Aabb} from '../../util/primitives/aabb.ts';
 import {MercatorCoordinate} from '../mercator_coordinate.ts';
 import {clamp, degreesToRadians, scaleZoom} from '../../util/util.ts';
+import {getWorldCRS, tileRowsAtZoom} from '../world_crs.ts';
 
 import type {IReadonlyTransform} from '../transform_interface.ts';
 import type {Terrain} from '../../render/terrain.ts';
@@ -173,8 +174,9 @@ export function coveringZoomLevel(transform: IReadonlyTransform, options: Coveri
     const z = (options.roundZoom ? Math.round : Math.floor)(
         transform.zoom + scaleZoom(transform.tileSize / options.tileSize)
     );
-    // At negative zoom levels load tiles from z0 because negative tile zoom levels don't exist.
-    return Math.max(0, z);
+    // At very low zoom levels, clamp to the shallowest tile zoom the world CRS defines a tile
+    // matrix level for - 0 for a square world, 1 for `WorldCRS84Quad`.
+    return Math.max(getWorldCRS().minTileZoom, z);
 }
 
 /**
@@ -284,10 +286,11 @@ export function coveringTiles(transform: IReadonlyTransform, options: CoveringTi
     const detailsProvider = transform.getCoveringTilesDetailsProvider();
     const allowVariableZoom = detailsProvider.allowVariableZoom(transform, options);
     
+    const minTileZoom = getWorldCRS().minTileZoom;
     const desiredZ = coveringZoomLevel(transform, options);
-    const minZoom = options.minzoom || 0;
-    const maxZoom = options.maxzoom !== undefined ? options.maxzoom : transform.maxZoom;
-    const nominalZ = Math.min(Math.max(0, desiredZ), maxZoom);
+    const minZoom = Math.max(options.minzoom || 0, minTileZoom);
+    const maxZoom = Math.max(options.maxzoom !== undefined ? options.maxzoom : transform.maxZoom, minTileZoom);
+    const nominalZ = Math.min(Math.max(minTileZoom, desiredZ), maxZoom);
 
     const numTiles = Math.pow(2, nominalZ);
     const cameraPoint = [numTiles * cameraCoord.x, numTiles * cameraCoord.y, 0];
@@ -350,7 +353,7 @@ export function coveringTiles(transform: IReadonlyTransform, options: CoveringTi
                 transform.fov);
         }
         thisTileDesiredZ = (options.roundZoom ? Math.round : Math.floor)(thisTileDesiredZ);
-        thisTileDesiredZ = Math.max(0, thisTileDesiredZ);
+        thisTileDesiredZ = Math.max(minTileZoom, thisTileDesiredZ);
         const z = Math.min(thisTileDesiredZ, maxZoom);
 
         // We need to compute a valid wrap value for the tile to keep globe compatibility with mercator
@@ -374,10 +377,14 @@ export function coveringTiles(transform: IReadonlyTransform, options: CoveringTi
             continue;
         }
 
+        const childZ = it.zoom + 1;
+        // The world is not necessarily square: `WorldCRS84Quad` only fills the northern half of
+        // the unit square, so the rows below it hold no tiles and must not be descended into.
+        const childRows = tileRowsAtZoom(childZ);
         for (let i = 0; i < 4; i++) {
             const childX = (x << 1) + (i % 2);
             const childY = (y << 1) + (i >> 1);
-            const childZ = it.zoom + 1;
+            if (childY >= childRows) continue;
             stack.push({zoom: childZ, x: childX, y: childY, wrap: it.wrap, fullyVisible});
         }
     }

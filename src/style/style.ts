@@ -72,6 +72,7 @@ import {
 } from '../util/actor_messages.ts';
 import {type Projection} from '../geo/projection/projection.ts';
 import {createProjectionFromName} from '../geo/projection/projection_factory.ts';
+import {getWorldCRS} from '../geo/world_crs.ts';
 import type {OverscaledTileID} from '../tile/tile_id.ts';
 
 const empty = emptyStyle();
@@ -268,6 +269,7 @@ export class Style extends Evented<MapEventType> {
 
         this._resetUpdates();
 
+        this.dispatcher.broadcast(MessageType.setWorldCRS, getWorldCRS().name);
         this.dispatcher.broadcast(MessageType.setReferrer, getReferrer());
         rtlMainThreadPluginFactory().on(RTLPluginLoadedEventName, this._rtlPluginLoaded);
 

@@ -1,4 +1,5 @@
 import {ensureError, extend, pick} from '../util/util.ts';
+import {zoomFromTileMatrixLevel} from '../geo/world_crs.ts';
 
 import {ImageRequest} from '../util/image_request.ts';
 
@@ -80,8 +81,9 @@ export class RasterTileSource extends Evented<SourceEventType> implements Source
         this.setEventedParent(eventedParent);
 
         this.type = 'raster';
-        this.minzoom = 0;
-        this.maxzoom = 22;
+        // Defaults are tile matrix levels 0..22 of the active world CRS, expressed as internal tile zooms.
+        this.minzoom = zoomFromTileMatrixLevel(0);
+        this.maxzoom = zoomFromTileMatrixLevel(22);
         this.roundZoom = true;
         this.scheme = 'xyz';
         this.tileSize = 512;

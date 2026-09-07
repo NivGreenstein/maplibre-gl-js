@@ -15,6 +15,7 @@ import {LngLat, type LngLatLike} from './geo/lng_lat.ts';
 import {LngLatBounds, type LngLatBoundsLike} from './geo/lng_lat_bounds.ts';
 import Point from '@mapbox/point-geometry';
 import {MercatorCoordinate} from './geo/mercator_coordinate.ts';
+import {getWorldCRS, setWorldCRS, WebMercatorQuad, WorldCRS84Quad, type WorldCRS, type WorldCRSName} from './geo/world_crs.ts';
 import {Evented, ErrorEvent, Event, type ErrorEventType, type EventedParentData, type EventTypeMap, type Listener} from './util/evented.ts';
 import {type AddProtocolAction, config} from './util/config.ts';
 import {rtlMainThreadPluginFactory} from './source/rtl_text_plugin_main_thread.ts';
@@ -229,6 +230,10 @@ export {
     LngLatBounds,
     Point,
     MercatorCoordinate,
+    getWorldCRS,
+    setWorldCRS,
+    WebMercatorQuad,
+    WorldCRS84Quad,
     Evented,
     Event,
     AJAXError,
@@ -386,6 +391,8 @@ export {
     type LngLatLike,
     type PointLike,
     type LngLatBoundsLike,
+    type WorldCRS,
+    type WorldCRSName,
     type Source,
     type MapLayerTouchEvent,
     type MapLayerMouseEvent,

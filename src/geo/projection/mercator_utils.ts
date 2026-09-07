@@ -1,7 +1,8 @@
 import {mat4} from 'gl-matrix';
 import {EXTENT} from '../../data/extent.ts';
-import {clamp, degreesToRadians, MAX_VALID_LATITUDE, zoomScale, type Mat4f64} from '../../util/util.ts';
+import {clamp, degreesToRadians, zoomScale, type Mat4f64} from '../../util/util.ts';
 import {MercatorCoordinate, mercatorXfromLng, mercatorYfromLat, mercatorZfromAltitude} from '../mercator_coordinate.ts';
+import {getWorldCRS} from '../world_crs.ts';
 import Point from '@mapbox/point-geometry';
 import type {UnwrappedTileIDType} from '../transform_helper.ts';
 import type {LngLat} from '../lng_lat.ts';
@@ -46,7 +47,8 @@ export function tileCoordinatesToLocation(inTileX: number, inTileY: number, cano
  * @returns Point
  */
 export function projectToWorldCoordinates(worldSize: number, lnglat: LngLat): Point {
-    const lat = clamp(lnglat.lat, -MAX_VALID_LATITUDE, MAX_VALID_LATITUDE);
+    const maxLatitude = getWorldCRS().maxLatitude;
+    const lat = clamp(lnglat.lat, -maxLatitude, maxLatitude);
     return new Point(
         mercatorXfromLng(lnglat.lng) * worldSize,
         mercatorYfromLat(lat) * worldSize);
