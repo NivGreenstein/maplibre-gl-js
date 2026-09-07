@@ -7,6 +7,7 @@
 - Build the default `Marker` pin once and clone it per marker, so creating many default markers takes roughly half the constructor time ([#8340](https://github.com/maplibre/maplibre-gl-js/pull/8340)) (by [@cherenkov](https://github.com/cherenkov))
 - Add SDF rendering support for fill patterns, using `fill-color` as the foreground color ([#7747](https://github.com/maplibre/maplibre-gl-js/pull/7747)) (by [@bradymadden97](https://github.com/bradymadden97) and [@deniial00](https://github.com/deniial00))
 - Warn once when the canvas is clamped to `maxCanvasSize`, which previously lowered the rendered resolution silently ([#8200](https://github.com/maplibre/maplibre-gl-js/issues/8200))
+- ⚠️ Make the world CRS (the projection MapLibre works in, and the tile matrix set it requests) pluggable, and default it to the OGC `WorldCRS84Quad` scheme, so raster and vector tiles are fetched and drawn natively in EPSG:4326 with no reprojection to mercator. `{z}` in a tile URL now carries the tile matrix level, which for `WorldCRS84Quad` is one below the internal tile zoom, and a source's `minzoom`/`maxzoom` name tile matrix levels; a `{bbox-epsg-4326}` URL token joins `{bbox-epsg-3857}`. Call `maplibregl.setWorldCRS('WebMercatorQuad')` before creating a map to restore the previous behaviour, which is also required by the `globe` and `vertical-perspective` projections. See [the world CRS guide](./developer-guides/world-crs.md)
 - _...Add new stuff here..._
 
 ### 🐞 Bug fixes

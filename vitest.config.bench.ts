@@ -4,6 +4,9 @@ const config: ViteUserConfig = defineConfig({
     test: {
         name: 'bench',
         environment: 'node',
+        setupFiles: [
+            './test/bench/world_crs_default.ts'
+        ],
         benchmark: {
             include: ['src/**/*.bench.ts'],
         },
