@@ -86,10 +86,12 @@ internal grid one level down:
 | `z`                | `2^z`   | `2^(z-1)` | `z - 1`            |
 
 `CanonicalTileID.url()` does that conversion, so `{z}` in a tile URL template is always the
-tile matrix level the server publishes. In the other direction, a source's `minzoom` and
-`maxzoom` - in the style and in TileJSON - name tile matrix levels too, and are converted to
-internal tile zooms when the source loads. Internal tile zoom 0 has no matching level, so
-tiles are never requested there.
+tile matrix level the server publishes, and `map.showTileBoundaries` labels each tile with its
+matrix level for the same reason - the debug overlay names a tile the way its URL and the
+server's capabilities document do. In the other direction, a source's `minzoom` and `maxzoom` -
+in the style and in TileJSON - name tile matrix levels too, and are converted to internal tile
+zooms when the source loads. Internal tile zoom 0 has no matching level, so tiles are never
+requested there.
 
 Because a `WorldCRS84Quad` tile is 256 px, a raster source should declare `tileSize: 256`, as
 it would for any 256 px scheme; MapLibre then requests one internal zoom deeper, which is

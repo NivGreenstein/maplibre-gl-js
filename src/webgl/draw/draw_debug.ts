@@ -4,6 +4,7 @@ import {CullFaceMode} from '../cull_face_mode.ts';
 import {debugUniformValues} from '../program/debug_program.ts';
 import {Color} from '@maplibre/maplibre-gl-style-spec';
 import {ColorMode} from '../color_mode.ts';
+import {tileMatrixLevelFromZoom} from '../../geo/world_crs.ts';
 
 import type {Painter} from '../../render/painter.ts';
 import type {TileManager} from '../../tile/tile_manager.ts';
@@ -84,12 +85,7 @@ function drawDebugTile(painter: Painter, tileManager: TileManager, coord: Oversc
     const tileSizeKb = Math.floor(tileByteLength / 1024);
     const tileSize = tileManager.getTile(coord).tileSize;
     const scaleRatio = (512 / Math.min(tileSize, 512) * (coord.overscaledZ / painter.transform.zoom)) * 0.5;
-    let tileIdText = coord.canonical.toString();
-    if (coord.overscaledZ !== coord.canonical.z) {
-        tileIdText += ` => ${coord.overscaledZ}`;
-    }
-    const tileLabel = `${tileIdText} ${tileSizeKb}kB`;
-    drawTextToOverlay(painter, tileLabel);
+    drawTextToOverlay(painter, tileDebugLabel(coord, tileSizeKb));
 
     const projectionData = painter.transform.getProjectionData({overscaledTileID: coord, applyGlobeMatrix: true, applyTerrainMatrix: true});
 
@@ -99,6 +95,22 @@ function drawDebugTile(painter: Painter, tileManager: TileManager, coord: Oversc
     program.draw(context, gl.LINE_STRIP, depthMode, stencilMode, colorMode, CullFaceMode.disabled,
         debugUniformValues(Color.red), terrainData, projectionData, id,
         painter.debugBuffer, painter.tileBorderIndexBuffer, painter.debugSegments);
+}
+
+/**
+ * The text drawn on a tile's debug boundary: the tile's address, followed by the size of the
+ * data it was loaded from in kB.
+ *
+ * The zoom is the tile matrix level of the active world CRS - the `{z}` the tile was requested
+ * with - rather than the internal tile zoom {@link OverscaledTileID} counts in, so that the
+ * label names the tile the way the tile server and its capabilities document do. The two differ
+ * by one under `WorldCRS84Quad`. An overscaled tile keeps its `=> zoom` suffix, a tile matrix
+ * level for the same reason.
+ */
+export function tileDebugLabel(coord: OverscaledTileID, tileSizeKb: number): string {
+    const {z, x, y} = coord.canonical;
+    const overscaled = coord.overscaledZ === z ? '' : ` => ${tileMatrixLevelFromZoom(coord.overscaledZ)}`;
+    return `${tileMatrixLevelFromZoom(z)}/${x}/${y}${overscaled} ${tileSizeKb}kB`;
 }
 
 function drawTextToOverlay(painter: Painter, text: string) {

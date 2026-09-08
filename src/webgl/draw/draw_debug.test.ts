@@ -4,7 +4,9 @@ import {type RasterSourceSpecification, type SourceSpecification, type VectorSou
 import {Style} from '../../style/style.ts';
 import {FillStyleLayer} from '../../style/style_layer/fill_style_layer.ts';
 import {RasterStyleLayer} from '../../style/style_layer/raster_style_layer.ts';
-import {selectDebugSource} from './draw_debug.ts';
+import {selectDebugSource, tileDebugLabel} from './draw_debug.ts';
+import {OverscaledTileID} from '../../tile/tile_id.ts';
+import {setWorldCRS} from '../../geo/world_crs.ts';
 
 vi.mock(import('../../style/style'));
 
@@ -119,5 +121,25 @@ describe('selectDebugSource', () => {
         const mockStyle = buildMockStyle(layers, sources);
         const source = selectDebugSource(mockStyle, zoom);
         expect(source).toHaveProperty('id', 'raster_14');
+    });
+});
+
+describe('tileDebugLabel', () => {
+    test('names the tile by its WorldCRS84Quad tile matrix level, one below the internal tile zoom', () => {
+        setWorldCRS('WorldCRS84Quad');
+
+        expect(tileDebugLabel(new OverscaledTileID(13, 0, 13, 4887, 1322), 7)).toBe('12/4887/1322 7kB');
+    });
+
+    test('names the tile by its internal tile zoom under WebMercatorQuad, where the two are the same', () => {
+        setWorldCRS('WebMercatorQuad');
+
+        expect(tileDebugLabel(new OverscaledTileID(13, 0, 13, 4887, 1322), 7)).toBe('13/4887/1322 7kB');
+    });
+
+    test('reports the zoom an overscaled tile is drawn at as a tile matrix level too', () => {
+        setWorldCRS('WorldCRS84Quad');
+
+        expect(tileDebugLabel(new OverscaledTileID(15, 0, 13, 4887, 1322), 0)).toBe('12/4887/1322 => 14 0kB');
     });
 });
