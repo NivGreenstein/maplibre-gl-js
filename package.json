@@ -1,18 +1,18 @@
 {
-  "name": "maplibre-gl",
-  "description": "BSD licensed community fork of mapbox-gl, a WebGL interactive maps library",
-  "version": "6.7.0",
+  "name": "@nivgreen/maplibre-gl-js-crs84",
+  "description": "Fork of maplibre-gl with WorldCRS84Quad (EPSG:4326) as the default tile matrix set",
+  "version": "6.7.0-rc.1",
   "module": "dist/maplibre-gl.mjs",
   "style": "dist/maplibre-gl.css",
   "license": "BSD-3-Clause",
-  "homepage": "https://maplibre.org/",
+  "homepage": "https://github.com/NivGreenstein/maplibre-gl-js#readme",
   "funding": "https://github.com/maplibre/maplibre-gl-js?sponsor=1",
   "bugs": {
-    "url": "https://github.com/maplibre/maplibre-gl-js/issues/"
+    "url": "https://github.com/NivGreenstein/maplibre-gl-js/issues/"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/maplibre/maplibre-gl-js"
+    "url": "git+https://github.com/NivGreenstein/maplibre-gl-js.git"
   },
   "types": "dist/maplibre-gl.d.ts",
   "type": "module",
@@ -163,6 +163,10 @@
     "bench-e2e": "node test/bench/e2e/run.ts",
     "prepare": "npm run codegen",
     "typecheck": "tsgo --noEmit && tsgo --project tsconfig.dist.json"
+  },
+  "publishConfig": {
+    "access": "public",
+    "tag": "rc"
   },
   "files": [
     "build/",
